@@ -9,7 +9,7 @@ type MenuItem struct {
 	Allergens            []string               `json:"allergens"`
 	CustomizationOptions map[string]interface{} `json:"customization_options"`
 	Size                 string                 `json:"size"`
-	Metadata             map[string]interface{} `json:"metadata"`
+	Metadata             bool                   `json:"metadata"`
 	Ingredients          []IngredientInfo       `json:"ingredients"`
 }
 
