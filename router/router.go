@@ -28,6 +28,28 @@ func SetupRouter() {
 		}
 	})
 
+	http.HandleFunc("/inventory", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			handlers.CreateInventoryHandler(w, r)
+		} else if r.Method == http.MethodGet {
+			handlers.GetInventoryHandler(w, r)
+		} else {
+			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		}
+	})
+
+	http.HandleFunc("/inventory/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			handlers.GetInventoryByIDHandler(w, r)
+		} else if r.Method == http.MethodPut {
+			handlers.UpdateInventoryHandler(w, r)
+		} else if r.Method == http.MethodDelete {
+			handlers.DeleteInventoryHandler(w, r)
+		} else {
+			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		}
+	})
+
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		panic("Failed to start server: " + err.Error())
