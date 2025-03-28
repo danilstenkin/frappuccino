@@ -23,11 +23,12 @@ func CreateMenuItemHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var item models.MenuItem
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
 
-	err := json.NewDecoder(r.Body).Decode(&item)
+	err := decoder.Decode(&item)
 	if err != nil {
-		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
-		log.Printf("Error decoding JSON: %v", err)
+		http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -132,10 +133,12 @@ func UpdateMenuItemHandler(w http.ResponseWriter, r *http.Request) {
 
 	var item models.MenuItem
 
-	err := json.NewDecoder(r.Body).Decode(&item)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+
+	err := decoder.Decode(&item)
 	if err != nil {
-		log.Printf("%s Failed to decode JSON: %v", logPrefix, err)
-		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+		http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
