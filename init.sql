@@ -18,7 +18,7 @@ CREATE TABLE orders (
     customer_id INTEGER REFERENCES customers(id),
     status order_status DEFAULT 'pending',
     special_instructions JSONB,
-    total_amount NUMERIC(10,2),
+    total_amount NUMERIC(10,2) DEFAULT 0,
     order_date TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -95,6 +95,40 @@ CREATE INDEX idx_orders_customer_id ON orders(customer_id);
 CREATE INDEX idx_order_items_order_id ON order_items(order_id);
 CREATE INDEX idx_menu_items_search ON menu_items USING gin (to_tsvector('english', name || ' ' || description));
 CREATE INDEX idx_inventory_name ON inventory(name);
+
+CREATE OR REPLACE FUNCTION update_order_total()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE orders
+    SET total_amount = (
+        SELECT COALESCE(SUM(quantity * price_at_order_time), 0)
+        FROM order_items
+        WHERE order_id = NEW.order_id
+    )
+    WHERE id = NEW.order_id;
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Срабатывает при вставке
+CREATE TRIGGER recalculate_total_after_insert
+AFTER INSERT ON order_items
+FOR EACH ROW
+EXECUTE FUNCTION update_order_total();
+
+-- Срабатывает при обновлении
+CREATE TRIGGER recalculate_total_after_update
+AFTER UPDATE ON order_items
+FOR EACH ROW
+EXECUTE FUNCTION update_order_total();
+
+-- Срабатывает при удалении
+CREATE TRIGGER recalculate_total_after_delete
+AFTER DELETE ON order_items
+FOR EACH ROW
+EXECUTE FUNCTION update_order_total();
+
 
 -- 12. Mock Data
 

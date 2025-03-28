@@ -1,7 +1,7 @@
 package models
 
 type InventoryItem struct {
-	ID           int     `json:"id"`
+	ID           int     `json:"-"`
 	Name         string  `json:"name"`
 	Quantity     int     `json:"quantity"`
 	Unit         string  `json:"unit"`
