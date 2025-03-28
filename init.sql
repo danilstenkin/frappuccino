@@ -40,8 +40,10 @@ CREATE TABLE menu_items (
     allergens TEXT[],
     customization_options JSONB,
     size item_size,
-    metadata JSONB
+    metadata JSONB,
+    UNIQUE (name, description, price, size)
 );
+
 
 -- 6. Order Items
 CREATE TABLE order_items (
