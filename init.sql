@@ -56,7 +56,7 @@ CREATE TABLE order_items (
 -- 7. Inventory
 CREATE TABLE inventory (
     id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
+    name TEXT NOT NULL UNIQUE,
     quantity INTEGER NOT NULL,
     unit unit_type,
     price_per_unit NUMERIC(10,2),
