@@ -2,13 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"frappuccino/db"
 	"frappuccino/models"
 	"frappuccino/repositories"
 	"log"
 	"net/http"
-	"strings"
 )
 
 func CreateCustomersHandlers(w http.ResponseWriter, r *http.Request) {
@@ -57,25 +55,17 @@ func CreateCustomersHandlers(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// DELETE -------------------------------------------------------------------------------------------------------
+// GET -------------------------------------------------------------------------------------------------------
 
-func DeleteCustomersHandler(w http.ResponseWriter, r *http.Request) {
-	const logPrefix = "[DeleteMenuItemHandler]"
-
-	id := strings.TrimPrefix(r.URL.Path, "/customers/")
-
-	if id == "" {
-		log.Printf("%s Missing customers ID in URL", logPrefix)
-		http.Error(w, "ID not found", http.StatusBadRequest)
-		return
-	}
-
-	err := repositories.DeleteCustomer(id)
+func GetCustomersHandlder(w http.ResponseWriter, r *http.Request) {
+	const logPrefix = "[GetCustomers]"
+	persons, err := repositories.GetCustomers()
 	if err != nil {
-		log.Printf("%s Failed to delete customers: %v", logPrefix, err)
-		http.Error(w, fmt.Sprintf("Failed to delete customers: %v", err), http.StatusBadRequest)
+		log.Printf("%s Failed to get customers: %v", logPrefix, err)
+		http.Error(w, "Failed to get customers: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(persons)
 }

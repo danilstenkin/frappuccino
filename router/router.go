@@ -90,14 +90,8 @@ func SetupRouter() {
 	http.HandleFunc("/customers", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			handlers.CreateCustomersHandlers(w, r)
-		} else {
-			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-		}
-	})
-
-	http.HandleFunc("/customers/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
-			handlers.DeleteCustomersHandler(w, r)
+		} else if r.Method == http.MethodGet {
+			handlers.GetCustomersHandlder(w, r)
 		} else {
 			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		}

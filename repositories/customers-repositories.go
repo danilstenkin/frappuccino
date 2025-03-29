@@ -7,7 +7,6 @@ import (
 	"frappuccino/db"
 	"frappuccino/models"
 	"log"
-	"strconv"
 )
 
 // CREATE CUSTOMER -----------------------------------------------------------------------------
@@ -30,44 +29,50 @@ func CreateCustomers(db *sql.DB, person models.Customers) (int, error) {
 	return id, nil
 }
 
-// DELETE CUSTOMER ------------------------------------------------------------------------------
+// GET CUSTOMERS ----------------------------------------------------------------------------------
 
-func DeleteCustomer(idStr string) error {
-	const logPrefix = "[DeleteCustomer]"
-
-	idInt, err := strconv.Atoi(idStr)
-	if err != nil {
-		log.Printf("%s incorrect ID: %v", logPrefix, err)
-		return fmt.Errorf("Error converting ID: %v", err)
-	}
+func GetCustomers() ([]models.CustomersResponse, error) {
+	const logPrefix = "[GetCustomers]"
 
 	dbConn, err := db.InitDB()
 	if err != nil {
 		log.Printf("%s Failed to connect to DB: %v", logPrefix, err)
-		return fmt.Errorf("failed to connect to database: %v", err)
+		return nil, fmt.Errorf("failed to connect to the database: %v", err)
 	}
 	defer dbConn.Close()
 
-	log.Printf("%s Connection to the database was successful", logPrefix)
-
-	log.Printf("%s Remove item from Customers with ID= %d", logPrefix, idInt)
-	query := `DELETE FROM customers WHERE id = $1`
-	result, err := dbConn.Exec(query, idInt)
+	rows, err := dbConn.Query("SELECT id, name, preferences FROM customers")
 	if err != nil {
-		log.Printf("%s Error while deleting from customers: %v", logPrefix, err)
-		return fmt.Errorf("failed to delete customers: %v", err)
+		log.Printf("%s Failed to get customers: %v", logPrefix, err)
+		return nil, fmt.Errorf("failed to get customers: %v", err)
+	}
+	defer rows.Close()
+
+	var persons []models.CustomersResponse
+
+	for rows.Next() {
+		var person models.CustomersResponse
+		var preferences sql.NullString
+
+		err := rows.Scan(&person.ID, &person.Name, &preferences)
+		if err != nil {
+			return nil, fmt.Errorf("ошибка при сканировании строки: %v", err)
+		}
+
+		if preferences.Valid {
+			err = json.Unmarshal([]byte(preferences.String), &person.Preferences)
+			if err != nil {
+				return nil, fmt.Errorf("ошибка при сканировании metadata: %v", err)
+			}
+		} else {
+			person.Preferences = nil
+		}
+
+		persons = append(persons, person)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("ошибка при итерации по строкам: %v", err)
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		log.Printf("%s Error getting number of deleted rows: %v", logPrefix, err)
-		return fmt.Errorf("error getting number of deleted rows: %v", err)
-	}
-	if rowsAffected == 0 {
-		log.Printf("%s Customers with ID %d not found", logPrefix, idInt)
-		return fmt.Errorf("Customers with ID %v not found", idInt)
-	}
-
-	log.Printf("%s Customers with ID %d successfully removed", logPrefix, idInt)
-	return nil
+	return persons, nil
 }
