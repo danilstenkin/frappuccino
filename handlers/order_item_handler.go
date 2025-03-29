@@ -33,12 +33,14 @@ func CreateOrderItemHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var item models.OrderItem
-	err := json.NewDecoder(r.Body).Decode(&item)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+
+	err := decoder.Decode(&item)
 	if err != nil {
-		http.Error(w, "Неверный формат JSON", http.StatusBadRequest)
+		http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
 		return
 	}
-
 	if item.OrderID == 0 || item.MenuItemID == 0 || item.Quantity <= 0 || item.PriceAtOrderTime <= 0 {
 		http.Error(w, "Неверные данные позиции", http.StatusBadRequest)
 		return

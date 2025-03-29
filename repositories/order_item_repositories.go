@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-func GetOrderItemsByOrderID(orderIDStr string) ([]models.OrderItem, error) {
+func GetOrderItemsByOrderID(orderIDStr string) ([]models.OrderItemResponce, error) {
 	orderID, err := strconv.Atoi(orderIDStr)
 	if err != nil {
 		return nil, fmt.Errorf("неверный формат order_id: %v", err)
@@ -29,10 +29,10 @@ func GetOrderItemsByOrderID(orderIDStr string) ([]models.OrderItem, error) {
 	}
 	defer rows.Close()
 
-	var items []models.OrderItem
+	var items []models.OrderItemResponce
 
 	for rows.Next() {
-		var item models.OrderItem
+		var item models.OrderItemResponce
 		var customization sql.NullString
 
 		err := rows.Scan(
