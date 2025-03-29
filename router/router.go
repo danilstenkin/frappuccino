@@ -87,6 +87,13 @@ func SetupRouter() {
 			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		}
 	})
+	http.HandleFunc("/customers", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			handlers.CreateCustomersHandlers(w, r)
+		} else {
+			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		}
+	})
 
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
