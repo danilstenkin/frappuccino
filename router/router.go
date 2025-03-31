@@ -113,6 +113,14 @@ func SetupRouter() {
 		}
 	})
 
+	http.HandleFunc("/reports/orderedItemsByPeriod", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			handlers.GetOrderedItemsByPeriod(w, r)
+		} else {
+			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		}
+	})
+
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		panic("Failed to start server: " + err.Error())
