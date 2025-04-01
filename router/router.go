@@ -113,7 +113,7 @@ func SetupRouter() {
 		}
 	})
 
-	http.HandleFunc("/orderedItemsByPeriod", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/reports/orderedItemsByPeriod", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
 			handlers.GetOrderedItemsByPeriod(w, r)
 		} else {
@@ -121,7 +121,7 @@ func SetupRouter() {
 		}
 	})
 
-	http.HandleFunc("/getLeftOvers", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/inventory/getLeftOvers", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
 			handlers.GetLeftOversHandler(w, r)
 		} else {
