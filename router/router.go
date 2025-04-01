@@ -121,6 +121,14 @@ func SetupRouter() {
 		}
 	})
 
+	http.HandleFunc("/inventory/getLeftOvers", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			handlers.GetLeftOversHandler(w, r)
+		} else {
+			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		}
+	})
+
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		panic("Failed to start server: " + err.Error())
