@@ -1,136 +1,3 @@
--- 1. ENUM Types
-CREATE TYPE order_status AS ENUM ('pending', 'preparing', 'completed', 'canceled');
-CREATE TYPE payment_method AS ENUM ('cash', 'card', 'online');
-CREATE TYPE staff_role AS ENUM ('barista', 'cashier', 'manager');
-CREATE TYPE item_size AS ENUM ('small', 'medium', 'large');
-CREATE TYPE unit_type AS ENUM ('grams', 'ml', 'pcs');
-
--- 2. Customers Table
-CREATE TABLE customers (
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    preferences JSONB
-);
-
--- 3. Orders Table
-CREATE TABLE orders (
-    id SERIAL PRIMARY KEY,
-    customer_id INTEGER REFERENCES customers(id),
-    status order_status DEFAULT 'pending',
-    special_instructions JSONB,
-    total_amount NUMERIC(10,2) DEFAULT 0,
-    order_date TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 4. Order Status History
-CREATE TABLE order_status_history (
-    id SERIAL PRIMARY KEY,
-    order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
-    status order_status,
-    changed_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 5. Menu Items
-CREATE TABLE menu_items (
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    description TEXT,
-    price NUMERIC(10,2) NOT NULL,
-    category TEXT[],
-    allergens TEXT[],
-    customization_options JSONB,
-    size item_size,
-    metadata JSONB,
-    UNIQUE (name, description, price, size)
-);
-
-
--- 6. Order Items
-CREATE TABLE order_items (
-    id SERIAL PRIMARY KEY,
-    order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
-    menu_item_id INTEGER REFERENCES menu_items(id),
-    quantity INTEGER NOT NULL,
-    price_at_order_time NUMERIC(10,2) NOT NULL,
-    customization JSONB
-);
-
--- 7. Inventory
-CREATE TABLE inventory (
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL UNIQUE,
-    quantity INTEGER NOT NULL,
-    unit unit_type,
-    price_per_unit NUMERIC(10,2),
-    last_updated TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 8. Menu Item Ingredients (Junction)
-CREATE TABLE menu_item_ingredients (
-    id SERIAL PRIMARY KEY,
-    menu_item_id INTEGER REFERENCES menu_items(id) ON DELETE CASCADE,
-    ingredient_id INTEGER REFERENCES inventory(id),
-    quantity_required INTEGER NOT NULL
-);
-
--- 9. Price History
-CREATE TABLE price_history (
-    id SERIAL PRIMARY KEY,
-    menu_item_id INTEGER REFERENCES menu_items(id) ON DELETE CASCADE,
-    price NUMERIC(10,2) NOT NULL,
-    changed_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 10. Inventory Transactions
-CREATE TABLE inventory_transactions (
-    id SERIAL PRIMARY KEY,
-    inventory_id INTEGER REFERENCES inventory(id) ON DELETE CASCADE,
-    change_amount INTEGER NOT NULL,
-    transaction_date TIMESTAMPTZ DEFAULT NOW(),
-    reason TEXT
-);
-
--- 11. Indexes
-CREATE INDEX idx_orders_customer_id ON orders(customer_id);
-CREATE INDEX idx_order_items_order_id ON order_items(order_id);
-CREATE INDEX idx_menu_items_search ON menu_items USING gin (to_tsvector('english', name || ' ' || description));
-CREATE INDEX idx_inventory_name ON inventory(name);
-
-CREATE OR REPLACE FUNCTION update_order_total()
-RETURNS TRIGGER AS $$
-BEGIN
-    UPDATE orders
-    SET total_amount = (
-        SELECT COALESCE(SUM(quantity * price_at_order_time), 0)
-        FROM order_items
-        WHERE order_id = NEW.order_id
-    )
-    WHERE id = NEW.order_id;
-
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
--- Срабатывает при вставке
-CREATE TRIGGER recalculate_total_after_insert
-AFTER INSERT ON order_items
-FOR EACH ROW
-EXECUTE FUNCTION update_order_total();
-
--- Срабатывает при обновлении
-CREATE TRIGGER recalculate_total_after_update
-AFTER UPDATE ON order_items
-FOR EACH ROW
-EXECUTE FUNCTION update_order_total();
-
--- Срабатывает при удалении
-CREATE TRIGGER recalculate_total_after_delete
-AFTER DELETE ON order_items
-FOR EACH ROW
-EXECUTE FUNCTION update_order_total();
-
-
--- 12. Mock Data
 
 -- Customers
 -- 1. ENUM Types
@@ -367,6 +234,7 @@ INSERT INTO menu_item_ingredients (menu_item_id, ingredient_id, quantity_require
 (13, 14, 5),
 (13, 15, 150);
 
+
 -- Orders
 INSERT INTO orders (customer_id, status, special_instructions, total_amount, order_date) VALUES
 (1, 'completed', '{"extra_shot": true}', 9.50, NOW() - INTERVAL '2 days'),
@@ -374,11 +242,10 @@ INSERT INTO orders (customer_id, status, special_instructions, total_amount, ord
 (3, 'pending', '{"no_milk": true}', 3.00, NOW()),
 (4, 'completed', '{"add_sugar": true}', 7.20, NOW() - INTERVAL '3 days'),
 (2, 'completed', '{}', 11.50, NOW() - INTERVAL '1 day'),
-(5, 'cancelled', '{"reason": "customer_request"}', 4.00, NOW() - INTERVAL '5 days'),
+(5, 'canceled', '{"reason": "customer_request"}', 4.00, NOW() - INTERVAL '5 days'),
 (1, 'preparing', '{"less_foam": true}', 6.75, NOW()),
 (3, 'completed', '{"no_chocolate": true}', 8.10, NOW() - INTERVAL '4 days'),
 (6, 'pending', '{}', 5.50, NOW()),
-(4, 'completed', '{"oat_milk": true}', 9.00, NOW() - INTERVAL '7 days'),
 (7, 'preparing', '{"no_sugar": true}', 4.80, NOW());
 
 -- Order Items
@@ -406,7 +273,7 @@ INSERT INTO order_status_history (order_id, status, changed_at) VALUES
 (4, 'pending', NOW() - INTERVAL '3 days'),
 (4, 'completed', NOW() - INTERVAL '3 days' + INTERVAL '2 hours'),
 (5, 'pending', NOW() - INTERVAL '5 days'),
-(5, 'cancelled', NOW() - INTERVAL '5 days' + INTERVAL '1 hour'),
+(5, 'canceled', NOW() - INTERVAL '5 days' + INTERVAL '1 hour'),
 (6, 'pending', NOW() - INTERVAL '6 hours'),
 (7, 'pending', NOW() - INTERVAL '8 days'),
 (7, 'completed', NOW() - INTERVAL '7 days'),
@@ -454,3 +321,4 @@ INSERT INTO inventory_transactions (inventory_id, change_amount, transaction_dat
 
 (10, -100, NOW() - INTERVAL '2 days', 'Order #11'),
 (2, -150, NOW() - INTERVAL '2 days', 'Order #11');
+

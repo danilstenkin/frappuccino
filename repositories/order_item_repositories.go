@@ -163,6 +163,12 @@ func DeductIngredients(menuItemID int, quantity int) error {
 	}
 	defer dbConn.Close()
 
+	tx, err := dbConn.Begin()
+	if err != nil {
+		return fmt.Errorf("не удалось начать транзакцию: %v", err)
+	}
+	defer tx.Rollback()
+
 	query := `
 	SELECT 
 		ingredient_id,
@@ -190,6 +196,15 @@ func DeductIngredients(menuItemID int, quantity int) error {
 		if err != nil {
 			return fmt.Errorf("ошибка при списании ингредиента #%d: %v", ingredientID, err)
 		}
+		insertTxn := `INSERT INTO inventory_transactions (inventory_id, change_amount, reason) VALUES ($1, $2, $3)`
+		_, err = tx.Exec(insertTxn, ingredientID, -total, fmt.Sprintf("Order item using menu_item_id=%d", menuItemID))
+		if err != nil {
+			return fmt.Errorf("ошибка при добавлении транзакции по ингредиенту #%d: %v", ingredientID, err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("ошибка при коммите транзакции: %v", err)
 	}
 
 	return nil
